@@ -8,7 +8,13 @@
   body { font-family: sans-serif; background:#ffffff; color:#000; padding:10px; margin:0; }
   h2 { margin-top:0; }
   #chat { height:300px; border:1px solid #ccc; padding:10px; overflow-y:auto; background:#f9f9f9; border-radius:8px; font-size:14px; }
-  #chat div { padding:4px 6px; margin-bottom:4px; border-radius:4px; word-break:break-word; border-bottom: 3px solid #ccc; }
+  #chat div {
+    padding:4px 6px;
+    margin-bottom:4px;
+    border-radius:4px;
+    word-break: break-word;
+    border-bottom: 1px solid #ccc; /* 発言ごとの線 */
+  }
   input, button { font-size:16px; padding:8px; margin:2px 0; }
   input { width:calc(100% - 20px); box-sizing:border-box; }
   button { width:100%; background:#238636; color:#fff; border:none; cursor:pointer; border-radius:4px; }
@@ -31,6 +37,7 @@
 <label for="color">文字色:</label>
 <input type="color" id="color" value="#000000"><br>
 <button onclick="send()">送信</button>
+<button onclick="clearChat()">チャットをクリア</button>
 
 <!-- Firebase ライブラリ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -59,12 +66,6 @@
     const color = document.getElementById("color").value || "#000000";
     if(!msg) return;
 
-    const now = new Date();
-    const line = document.createElement("div");
-    line.textContent = `[${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}] ${name}: ${msg}`;
-    line.style.color = color;
-    chat.appendChild(line);
-
     db.ref("messages").push({
       name: name,
       text: msg,
@@ -73,18 +74,17 @@
     });
 
     document.getElementById("msg").value = "";
-    chat.scrollTop = chat.scrollHeight;
   }
 
   // Enterで送信
   document.getElementById("msg").addEventListener("keypress", function(e){
     if(e.key === "Enter") {
       send();
-      e.preventDefault(); // 改行防止
+      e.preventDefault();
     }
   });
 
-  // Firebase からリアルタイムで受信
+  // Firebase からリアルタイムで受信・画面追加
   db.ref("messages").on("child_added", snapshot => {
     const data = snapshot.val();
     const line = document.createElement("div");
@@ -94,6 +94,14 @@
     chat.appendChild(line);
     chat.scrollTop = chat.scrollHeight;
   });
+
+  // チャットクリア関数
+  function clearChat() {
+    if(confirm("本当にチャットを全て削除しますか？")) {
+      db.ref("messages").remove(); // Firebase から全削除
+      chat.innerHTML = "";          // 画面上もクリア
+    }
+  }
 </script>
 
 </body>
