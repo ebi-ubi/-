@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+  <meta charset="UTF-8">
+    <title>雑談チャット</title>
+    <style>
+      body { font-famliy: sans-serif;background:#111; color:#eee; }
+      #chat { height:300px; border;1px solid#555; padding:10px overflow:auto; }
+      input { width:80%; }
+      button { width:18%; }
+    </style>
+  </head>
+  <body>
+
+    <h2>チャットルーム</h2>
+
+    <div id="chat"></div>
+<input id="name" placeholder="名前">
+    <br><br>
+    <input id="msg" placeholder="メッセージ">
+    <button onclick="send()">送信</button>
+
+    <script>
+      const chat =
+        document.getElementById("chat");
+      function send(){
+        cost name =
+          document.getElementById("name").value ||
+          "名無し";
+         const msg =
+           document.getElementById("msg").value;
+         if(!msg) return;
+
+        const line =
+          document.createElement("div");
+         line.textContent = name + ": " + msg;
+         chat.appendChild(line);
+
+         document.getElementById("msg").value =
+           "";
+         chat.scrollTop = chat.scrollHeight;
+      }
+    </script>
+
+  </body>
+</html>  
