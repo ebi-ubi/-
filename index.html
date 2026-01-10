@@ -52,6 +52,7 @@
   const db = firebase.database();
   const chat = document.getElementById("chat");
 
+  // 送信関数
   function send() {
     const name = document.getElementById("name").value || "名無し";
     const msg = document.getElementById("msg").value;
@@ -74,6 +75,14 @@
     document.getElementById("msg").value = "";
     chat.scrollTop = chat.scrollHeight;
   }
+
+  // Enterで送信
+  document.getElementById("msg").addEventListener("keypress", function(e){
+    if(e.key === "Enter") {
+      send();
+      e.preventDefault(); // 改行防止
+    }
+  });
 
   // Firebase からリアルタイムで受信
   db.ref("messages").on("child_added", snapshot => {
