@@ -1,60 +1,80 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
+<head>
   <meta charset="UTF-8">
-    <title>雑談チャット</title>
-    <style>
-      body { font-famliy: sans-serif;background:#0b0f14; color:#e6edf3; }
-      #chat { height:300px; border;1px solid#30363d; padding:10px overflow:auto; }
-      input { width:80%; }
-      button { width:18%; }
-    </style>
-  </head>
-  <body>
+  <title>雑談チャット</title>
+  <style>
+    body { font-family: sans-serif; background:#0b0f14; color:#e6edf3; }
+    #chat { height:300px; border:1px solid #30363d; padding:10px; overflow:auto; margin-bottom:10px; }
+    input { width:80%; padding:5px; }
+    button { width:18%; padding:5px; }
+    #name { margin-bottom:5px; }
+  </style>
+</head>
+<body>
 
-    <h2>チャットルーム</h2>
-    <!-- 概要欄　-->
-    <p><a href="about.html"
-         style="color:#58a6ff;">グヘヘ</a></p>
-<!--　ここまで -->
-    
-    
-    <div id="chat"></div>
-<input id="name" placeholder="名前">
-    <br><br>
-    <input id="msg" placeholder="メッセージ">
-    <button onclick="send()">送信</button>
+<h2>チャットルーム</h2>
 
-    <script>
-      const chat =
-        document.getElementById("chat");
-      function send(){
-        const name =
-          document.getElementById("name").value ||
-          "名無し";
-         const msg =
-           document.getElementById("msg").value;
-         if(!msg) return;
+<p><a href="about.html" style="color:#58a6ff;">概要を見る</a></p>
 
-        const line =
-          document.createElement("div");
-         line.textContent = name + ": " + msg;
-         chat.appendChild(line);
+<div id="chat"></div>
+<input id="name" placeholder="名前"><br>
+<input id="msg" placeholder="メッセージ">
+<button onclick="send()">送信</button>
 
-         document.getElementById("msg").value =
-           "";
-         chat.scrollTop = chat.scrollHeight;
-      }
-      const firebaseConfig = {
-  apiKey: "AIzaSyCksh5o3ET0wanv8le-XRqDem-KxJDZsV8",
-  authDomain: "chat-room-1ea16.firebaseapp.com",
-  projectId: "chat-room-1ea16",
-  storageBucket: "chat-room-1ea16.firebasestorage.app",
-  messagingSenderId: "533435990757",
-  appId: "1:533435990757:web:34423b07cad900a4aaca0c",
-  measurementId: "G-MFZ7BYTQ1B"
-};
-    </script>
+<!-- Firebase ライブラリ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  </body>
-</html>  
+<script>
+  // Firebase 設定（コピーしたやつをここに貼る）
+  const firebaseConfig = {
+    apiKey: "AIzaSyCksh5o3ET0wanv8le-XRqDem-KxJDZsV8",
+    authDomain: "chat-room-1ea16.firebaseapp.com",
+    databaseURL: "https://chat-room-1ea16-default-rtdb.firebaseio.com",
+    projectId: "chat-room-1ea16",
+    storageBucket: "chat-room-1ea16.appspot.com",
+    messagingSenderId: "533435990757",
+    appId: "1:533435990757:web:34423b07cad900a4aaca0c"
+  };
+
+  // Firebase 初期化
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const chat = document.getElementById("chat");
+
+  // メッセージ送信
+  function send() {
+    const name = document.getElementById("name").value || "名無し";
+    const msg = document.getElementById("msg").value;
+    if(!msg) return;
+
+    // 画面に表示
+    const line = document.createElement("div");
+    line.textContent = name + ": " + msg;
+    chat.appendChild(line);
+
+    // Firebase に保存
+    db.ref("messages").push({
+      name: name,
+      text: msg,
+      time: Date.now()
+    });
+
+    document.getElementById("msg").value = "";
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  // リアルタイムで更新
+  db.ref("messages").on("child_added", snapshot => {
+    const data = snapshot.val();
+    const line = document.createElement("div");
+    line.textContent = data.name + ": " + data.text;
+    chat.appendChild(line);
+    chat.scrollTop = chat.scrollHeight;
+  });
+</script>
+
+</body>
+</html>
