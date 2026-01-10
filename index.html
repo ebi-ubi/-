@@ -2,31 +2,34 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>雑談チャット</title>
+<title>色指定チャット</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { font-family: sans-serif; background:#0b0f14; color:#e6edf3; padding:10px; margin:0; }
+  body { font-family: sans-serif; background:#ffffff; color:#000; padding:10px; margin:0; }
   h2 { margin-top:0; }
-  #chat { height:300px; border:1px solid #30363d; padding:10px; overflow-y:auto; background:#161b22; border-radius:8px; font-size:14px; }
-  #chat div { padding:4px 6px; margin-bottom:4px; border-radius:4px; background:#21262d; word-break:break-word; }
+  #chat { height:300px; border:1px solid #ccc; padding:10px; overflow-y:auto; background:#f9f9f9; border-radius:8px; font-size:14px; }
+  #chat div { padding:4px 6px; margin-bottom:4px; border-radius:4px; word-break:break-word; }
   input, button { font-size:16px; padding:8px; margin:2px 0; }
   input { width:calc(100% - 20px); box-sizing:border-box; }
   button { width:100%; background:#238636; color:#fff; border:none; cursor:pointer; border-radius:4px; }
   button:hover { background:#2ea043; }
   @media(min-width:480px){
-    input { width:80%; }
+    #msg, #name, #color { width:80%; display:inline-block; }
     button { width:18%; display:inline-block; }
   }
 </style>
 </head>
 <body>
 
-<h2>チャットルーム</h2>
+<h2>色指定チャットルーム</h2>
 <p><a href="about.html" style="color:#58a6ff;">概要を見る</a></p>
 
 <div id="chat"></div>
+
 <input id="name" placeholder="名前"><br>
 <input id="msg" placeholder="メッセージ"><br>
+<label for="color">文字色:</label>
+<input type="color" id="color" value="#000000"><br>
 <button onclick="send()">送信</button>
 
 <!-- Firebase ライブラリ -->
@@ -49,40 +52,36 @@
   const db = firebase.database();
   const chat = document.getElementById("chat");
 
-  function getColor(name){
-    const colors = ["#f97583","#ffac4c","#58a6ff","#a5d6ff","#bc8cff"];
-    let hash = 0;
-    for(let i=0;i<name.length;i++) hash += name.charCodeAt(i);
-    return colors[hash % colors.length];
-  }
-
-  function send(){
+  function send() {
     const name = document.getElementById("name").value || "名無し";
     const msg = document.getElementById("msg").value;
+    const color = document.getElementById("color").value || "#000000";
     if(!msg) return;
 
     const now = new Date();
     const line = document.createElement("div");
     line.textContent = `[${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}] ${name}: ${msg}`;
-    line.style.color = getColor(name);
+    line.style.color = color;
     chat.appendChild(line);
 
     db.ref("messages").push({
       name: name,
       text: msg,
-      time: Date.now()
+      time: Date.now(),
+      color: color
     });
 
     document.getElementById("msg").value = "";
     chat.scrollTop = chat.scrollHeight;
   }
 
+  // Firebase からリアルタイムで受信
   db.ref("messages").on("child_added", snapshot => {
     const data = snapshot.val();
     const line = document.createElement("div");
     const time = new Date(data.time);
     line.textContent = `[${time.getHours()}:${time.getMinutes().toString().padStart(2,'0')}] ${data.name}: ${data.text}`;
-    line.style.color = getColor(data.name);
+    line.style.color = data.color || "#000000";
     chat.appendChild(line);
     chat.scrollTop = chat.scrollHeight;
   });
