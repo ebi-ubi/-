@@ -9,149 +9,94 @@
   h2 { margin-top:0; }
   #chat { height:300px; border:1px solid #ccc; padding:10px; overflow-y:auto; background:#f9f9f9; border-radius:8px; font-size:14px; }
   #chat div {
-    padding:4px 6px;
-    margin-bottom:4px;
-    border-radius:4px;
-    word-break: break-word;
-    border-bottom: 1px solid #ccc; /* 発言ごとの線 */
+    padding:6px;
+    margin-bottom:6px;
+    border-bottom:1px solid #ccc;
+    word-break:break-word;
   }
-  input, button { font-size:16px; padding:8px; margin:2px 0; }
-  input { width:calc(100% - 20px); box-sizing:border-box; }
-  button { width:100%; background:#238636; color:#fff; border:none; cursor:pointer; border-radius:4px; }
-  button:hover { background:#2ea043; }
-  @media(min-width:480px){
-    #msg, #name, #color { width:80%; display:inline-block; }
-    button { width:18%; display:inline-block; }
-  }
+  input, button { font-size:16px; padding:8px; margin:4px 0; width:100%; }
+  button { background:#238636; color:#fff; border:none; border-radius:4px; }
 </style>
 </head>
 <body>
 
 <h2>試作チャットルーム</h2>
-<p><a href="about.html" style="color:#58a6ff;">概要を見る</a></p>
 
 <div id="chat"></div>
 
-<input id="name" placeholder="名前"><br>
-<input id="msg" placeholder="メッセージ"><br>
-<label for="color">文字色:</label>
-<input type="color" id="color" value="#000000"><br>
+<input id="name" placeholder="名前">
+<input id="msg" placeholder="メッセージ">
+<input type="color" id="color" value="#000000">
 <button onclick="send()">送信</button>
-<button onclick="clearChat()">チャットをクリア</button>
 
-<!-- Firebase ライブラリ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-  // Firebase 設定
-  const firebaseConfig = {
-    apiKey: "AIzaSyCksh5o3ET0wanv8le-XRqDem-KxJDZsV8",
-    authDomain: "chat-room-1ea16.firebaseapp.com",
-    databaseURL: "https://chat-room-1ea16-default-rtdb.firebaseio.com/",
-    projectId: "chat-room-1ea16",
-    storageBucket: "chat-room-1ea16.appspot.com",
-    messagingSenderId: "533435990757",
-    appId: "1:533435990757:web:34423b07cad900a4aaca0c"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCksh5o3ET0wanv8le-XRqDem-KxJDZsV8",
+  authDomain: "chat-room-1ea16.firebaseapp.com",
+  databaseURL: "https://chat-room-1ea16-default-rtdb.firebaseio.com",
+  projectId: "chat-room-1ea16",
+  storageBucket: "chat-room-1ea16.appspot.com",
+  messagingSenderId: "533435990757",
+  appId: "1:533435990757:web:34423b07cad900a4aaca0c"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const chat = document.getElementById("chat");
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const chat = document.getElementById("chat");
 
-  function escapeHTML(str){
-  return str.replace(/[&<>"']/g, function(m){
-    return ({
-      '&':'&amp;',
-      '<':'&lt;',
-      '>':'&gt;',
-      '"':'&quot;',
-      "'":'&#39;'
-    })[m];
-  });
+function escapeHTML(str){
+  return str.replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
 }
 
 function renderMessage(text){
-function renderMessage(text){
-  const escaped = escapeHTML(text);
+  let html = escapeHTML(text);
 
-  let html = escaped;
-
-  // ① YouTube（最優先）
-  const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
-  html = html.replace(ytRegex,
+  // YouTube
+  html = html.replace(
+    /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g,
     '<iframe width="240" height="135" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
   );
 
-  // ② 画像URL（YouTube iframe を壊さないように先に処理）
-  const imgRegex = /(https?:\/\/[^\s<]+?\.(jpg|jpeg|png|gif|webp))/gi;
-  html = html.replace(imgRegex,
-    '<br><img src="$1" style="max-width:100%; border-radius:6px; margin-top:4px;">'
+  // Image
+  html = html.replace(
+    /(https?:\/\/[^\s<]+?\.(jpg|jpeg|png|gif|webp))/gi,
+    '<br><img src="$1" style="max-width:100%;border-radius:6px;">'
   );
 
-  // ③ 通常URL（iframe・img 以外）
-  const urlRegex = /(https?:\/\/[^\s<]+)/g;
-  html = html.replace(urlRegex, (url) => {
-    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
-    if (url.includes("youtube.com") || url.includes("youtu.be")) return url;
-    return `<a href="${url}" target="_blank" style="color:#0969da;">${url}</a>`;
-  });
+  // Link
+  html = html.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank">$1</a>'
+  );
 
   return html;
 }
 
-  // 送信関数
-  function send() {
-    const name = document.getElementById("name").value || "名無し";
-    const msg = document.getElementById("msg").value;
-    const color = document.getElementById("color").value || "#000000";
-    if(!msg) return;
+function send(){
+  const name = document.getElementById("name").value || "名無し";
+  const msg = document.getElementById("msg").value;
+  const color = document.getElementById("color").value;
+  if(!msg) return;
 
-    db.ref("messages").push({
-      name: name,
-      text: msg,
-      time: Date.now(),
-      color: color
-    });
-
-    document.getElementById("msg").value = "";
-  }
-
-  // Enterで送信
-  document.getElementById("msg").addEventListener("keypress", function(e){
-    if(e.key === "Enter") {
-      send();
-      e.preventDefault();
-    }
+  db.ref("messages").push({
+    name, text: msg, color, time: Date.now()
   });
 
-  // Firebase からリアルタイムで受信・画面追加
-  db.ref("messages").on("child_added", snapshot => {
-  const data = snapshot.val();
-  const line = document.createElement("div");
-  const time = new Date(data.time);
+  document.getElementById("msg").value = "";
+}
 
-  line.innerHTML = `
-    <span style="font-size:11px;color:#666;">
-      [${time.getHours()}:${time.getMinutes().toString().padStart(2,'0')}]
-    </span>
-    <strong style="color:${data.color || '#000'}">
-      ${data.name}
-    </strong><br>
-    ${renderMessage(data.text)}
-  `;
-
-  chat.appendChild(line);
+db.ref("messages").on("child_added", snap => {
+  const d = snap.val();
+  const div = document.createElement("div");
+  div.innerHTML = `<b style="color:${d.color}">${d.name}</b><br>${renderMessage(d.text)}`;
+  chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 });
-
-  // チャットクリア関数
-  function clearChat() {
-    if(confirm("本当にチャットを全て削除しますか？")) {
-      db.ref("messages").remove(); // Firebase から全削除
-      chat.innerHTML = "";          // 画面上もクリア
-    }
-  }
 </script>
 
 </body>
