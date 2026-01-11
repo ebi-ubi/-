@@ -4,20 +4,58 @@
 <meta charset="UTF-8">
 <title>試作チャット</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-  body { font-family: sans-serif; background:#ffffff; color:#000; padding:10px; margin:0; }
-  h2 { margin-top:0; }
-  #chat { height:300px; border:1px solid #ccc; padding:10px; overflow-y:auto; background:#f9f9f9; border-radius:8px; font-size:14px; }
-  #chat div {
-    padding:6px;
-    margin-bottom:6px;
-    border-bottom:1px solid #ccc;
-    word-break:break-word;
-  }
-  input, button { font-size:16px; padding:8px; margin:4px 0; width:100%; }
-  button { background:#238636; color:#fff; border:none; border-radius:4px; }
+body{
+  font-family:sans-serif;
+  background:#fff;
+  margin:0;
+  padding:10px;
+}
+#chat{
+  height:300px;
+  border:1px solid #ccc;
+  padding:10px;
+  overflow-y:auto;
+  background:#f9f9f9;
+  border-radius:8px;
+}
+#chat div{
+  padding:6px;
+  margin-bottom:6px;
+  border-bottom:1px solid #ddd;
+  word-break:break-word;
+}
+input,button{
+  width:100%;
+  font-size:16px;
+  padding:8px;
+  margin:4px 0;
+}
+button{
+  background:#238636;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+}
+button:hover{
+  background:#2ea043;
+}
+iframe{
+  max-width:100%;
+  border-radius:6px;
+}
+img{
+  max-width:100%;
+  border-radius:6px;
+  margin-top:4px;
+}
+a{
+  color:#0969da;
+}
 </style>
 </head>
+
 <body>
 
 <h2>試作チャットルーム</h2>
@@ -27,8 +65,11 @@
 <input id="name" placeholder="名前">
 <input id="msg" placeholder="メッセージ">
 <input type="color" id="color" value="#000000">
-<button onclick="send()">送信</button>
 
+<button onclick="send()">送信</button>
+<button onclick="clearChat()">チャットをクリア</button>
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -47,40 +88,47 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const chat = document.getElementById("chat");
 
+/* XSS対策 */
 function escapeHTML(str){
   return str.replace(/[&<>"']/g, m => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[m]);
 }
 
+/* メッセージ描画 */
 function renderMessage(text){
   let html = escapeHTML(text);
 
-  // YouTube
+  // YouTube（最優先）
   html = html.replace(
     /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g,
-    '<iframe width="240" height="135" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
+    '<iframe width="280" height="158" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
   );
 
-  // Image
+  // 画像URL
   html = html.replace(
     /(https?:\/\/[^\s<]+?\.(jpg|jpeg|png|gif|webp))/gi,
-    '<br><img src="$1" style="max-width:100%;border-radius:6px;">'
+    '<br><img src="$1">'
   );
 
-  // Link
+  // 通常リンク（画像・YouTube以外）
   html = html.replace(
     /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" target="_blank">$1</a>'
+    url => {
+      if(url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
+      if(url.includes("youtube.com") || url.includes("youtu.be")) return url;
+      return `<a href="${url}" target="_blank">${url}</a>`;
+    }
   );
 
   return html;
 }
 
+/* 送信 */
 function send(){
   const name = document.getElementById("name").value || "名無し";
-  const msg = document.getElementById("msg").value;
-  const color = document.getElementById("color").value;
+  const msg  = document.getElementById("msg").value;
+  const color= document.getElementById("color").value;
   if(!msg) return;
 
   db.ref("messages").push({
@@ -90,13 +138,33 @@ function send(){
   document.getElementById("msg").value = "";
 }
 
-db.ref("messages").on("child_added", snap => {
+/* Enter送信 */
+document.getElementById("msg").addEventListener("keydown", e=>{
+  if(e.key==="Enter"){
+    send();
+    e.preventDefault();
+  }
+});
+
+/* 受信 */
+db.ref("messages").on("child_added", snap=>{
   const d = snap.val();
   const div = document.createElement("div");
-  div.innerHTML = `<b style="color:${d.color}">${d.name}</b><br>${renderMessage(d.text)}`;
+  div.innerHTML = `
+    <b style="color:${d.color}">${escapeHTML(d.name)}</b><br>
+    ${renderMessage(d.text)}
+  `;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 });
+
+/* 全消し */
+function clearChat(){
+  if(confirm("本当に全て削除しますか？")){
+    db.ref("messages").remove();
+    chat.innerHTML = "";
+  }
+}
 </script>
 
 </body>
