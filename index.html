@@ -74,26 +74,35 @@
 function renderMessage(text){
   let html = text;
 
-  // YouTube（最優先）
+// YouTube（最優先・完全分離）
   const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
-  html = html.replace(
-    ytRegex,
-    '<iframe width="240" height="135" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
-  );
+  html = html.replace(ytRegex, (match, url, videoId) => {
+    return `
+      <div style="margin-top:6px;">
+        <iframe
+          width="240"
+          height="135"
+          src="https://www.youtube.com/embed/${videoId}"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen>
+        </iframe>
+      </div>
+    `;
+  });
 
   // 画像URL
   const imgRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
-  html = html.replace(
-    imgRegex,
-    '<br><img src="$1" style="max-width:100%; border-radius:6px; margin-top:4px;">'
-  );
+  html = html.replace(imgRegex, (url) => {
+    return `<br><img src="${url}" style="max-width:100%; border-radius:6px; margin-top:4px;">`;
+  });
 
-  // 通常URL（画像・YouTube除外）
+  // 通常URL（iframe・img を触らない）
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
   html = html.replace(urlRegex, (url) => {
-    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
     if (url.includes("youtube.com") || url.includes("youtu.be")) return url;
-    return `<a href="${url}" target="_blank" style="color:#0969da;">${url}</a>`;
+    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
+    return `<a href="${url}" target="_blank" rel="noopener" style="color:#0969da;">${url}</a>`;
   });
 
   return html;
