@@ -72,37 +72,29 @@
 }
 
 function renderMessage(text){
-  let html = text;
+function renderMessage(text){
+  const escaped = escapeHTML(text);
 
-// YouTube（最優先・完全分離）
+  let html = escaped;
+
+  // ① YouTube（最優先）
   const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
-  html = html.replace(ytRegex, (match, url, videoId) => {
-    return `
-      <div style="margin-top:6px;">
-        <iframe
-          width="240"
-          height="135"
-          src="https://www.youtube.com/embed/${videoId}"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen>
-        </iframe>
-      </div>
-    `;
-  });
+  html = html.replace(ytRegex,
+    '<iframe width="240" height="135" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
+  );
 
-  // 画像URL
-  const imgRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
-  html = html.replace(imgRegex, (url) => {
-    return `<br><img src="${url}" style="max-width:100%; border-radius:6px; margin-top:4px;">`;
-  });
+  // ② 画像URL（YouTube iframe を壊さないように先に処理）
+  const imgRegex = /(https?:\/\/[^\s<]+?\.(jpg|jpeg|png|gif|webp))/gi;
+  html = html.replace(imgRegex,
+    '<br><img src="$1" style="max-width:100%; border-radius:6px; margin-top:4px;">'
+  );
 
-  // 通常URL（iframe・img を触らない）
+  // ③ 通常URL（iframe・img 以外）
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
   html = html.replace(urlRegex, (url) => {
-    if (url.includes("youtube.com") || url.includes("youtu.be")) return url;
     if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
-    return `<a href="${url}" target="_blank" rel="noopener" style="color:#0969da;">${url}</a>`;
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return url;
+    return `<a href="${url}" target="_blank" style="color:#0969da;">${url}</a>`;
   });
 
   return html;
