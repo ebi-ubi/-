@@ -76,19 +76,22 @@ function renderMessage(text){
 
   // YouTube
   const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
-  let html = escaped.replace(ytRegex,
+  let html = escaped.replace(
+    ytRegex,
     '<iframe width="240" height="135" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
   );
 
   // 画像URL
   const imgRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
-  html = html.replace(imgRegex,
+  html = html.replace(
+    imgRegex,
     '<br><img src="$1" style="max-width:100%; border-radius:6px; margin-top:4px;">'
   );
 
   // 通常URL
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
-  html = html.replace(urlRegex,
+  html = html.replace(
+    urlRegex,
     '<a href="$1" target="_blank" style="color:#0969da;">$1</a>'
   );
 
