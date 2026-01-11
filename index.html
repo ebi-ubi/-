@@ -72,11 +72,11 @@
 }
 
 function renderMessage(text){
-  const escaped = escapeHTML(text);
+  let html = text;
 
-  // YouTube
+  // YouTube（最優先）
   const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\s&]+))/g;
-  let html = escaped.replace(
+  html = html.replace(
     ytRegex,
     '<iframe width="240" height="135" src="https://www.youtube.com/embed/$2" frameborder="0" allowfullscreen></iframe>'
   );
@@ -88,12 +88,13 @@ function renderMessage(text){
     '<br><img src="$1" style="max-width:100%; border-radius:6px; margin-top:4px;">'
   );
 
-  // 通常URL
+  // 通常URL（画像・YouTube除外）
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
-  html = html.replace(
-    urlRegex,
-    '<a href="$1" target="_blank" style="color:#0969da;">$1</a>'
-  );
+  html = html.replace(urlRegex, (url) => {
+    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return url;
+    return `<a href="${url}" target="_blank" style="color:#0969da;">${url}</a>`;
+  });
 
   return html;
 }
