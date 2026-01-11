@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>色指定チャット</title>
+<title>試作チャット</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   body { font-family: sans-serif; background:#ffffff; color:#000; padding:10px; margin:0; }
@@ -27,7 +27,7 @@
 </head>
 <body>
 
-<h2>色指定チャットルーム</h2>
+<h2>試作チャットルーム</h2>
 <p><a href="about.html" style="color:#58a6ff;">概要を見る</a></p>
 
 <div id="chat"></div>
@@ -86,14 +86,23 @@
 
   // Firebase からリアルタイムで受信・画面追加
   db.ref("messages").on("child_added", snapshot => {
-    const data = snapshot.val();
-    const line = document.createElement("div");
-    const time = new Date(data.time);
-    line.textContent = `[${time.getHours()}:${time.getMinutes().toString().padStart(2,'0')}] ${data.name}: ${data.text}`;
-    line.style.color = data.color || "#000000";
-    chat.appendChild(line);
-    chat.scrollTop = chat.scrollHeight;
-  });
+  const data = snapshot.val();
+  const line = document.createElement("div");
+  const time = new Date(data.time);
+
+  line.innerHTML = `
+    <span style="font-size:11px;color:#666;">
+      [${time.getHours()}:${time.getMinutes().toString().padStart(2,'0')}]
+    </span>
+    <strong style="color:${data.color || '#000'}">
+      ${data.name}
+    </strong><br>
+    ${renderMessage(data.text)}
+  `;
+
+  chat.appendChild(line);
+  chat.scrollTop = chat.scrollHeight;
+});
 
   // チャットクリア関数
   function clearChat() {
